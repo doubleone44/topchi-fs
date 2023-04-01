@@ -3,6 +3,7 @@ namespace Shared
 open Helper
 open Pinyin
 open Thoth.Json
+open FSharpPlus
 
 module Characters = 
 
@@ -68,13 +69,11 @@ module Characters =
     )
 
     let EtyStringToEty etyString =
-        match etyString with
-        | Some a -> match a.Type with
-                    | "ideographic" -> Some(Ideographic a.Hint) 
-                    | "pictographic" -> Some(Pictographic a.Hint)
-                    | "pictophonetic" -> Some(Pictophonetic (a.Phonetic, a.Semantic, a.Hint) )
-                    | _ -> None
-        | None -> None
+        match etyString.Type with
+            | "ideographic" -> Some(Ideographic etyString.Hint) 
+            | "pictographic" -> Some(Pictographic etyString.Hint)
+            | "pictophonetic" -> Some(Pictophonetic (etyString.Phonetic, etyString.Semantic, etyString.Hint) )
+            | _ -> None
 
     let BiDirs = ['⿰';'⿱';'⿴';'⿵';'⿶';'⿷';'⿸';'⿹';'⿺';'⿻']
     let TriDirs =  ['⿲';'⿳']
@@ -131,34 +130,29 @@ module Characters =
                 Etymology = None
             }); chars = t}
 
-    let Decompose (decString : string option) : Decomposition option =
-        match decString with
-            | None -> None
-            | Some str ->
-                let chars = Seq.toList str
-                let dec = Dec (chars)
-                Some(dec.dec)
+    let Decompose (str : string) : Decomposition option =
+        let chars = Seq.toList str
+        let dec = Dec (chars)
+        Some(dec.dec)
                             
     let decodeCharacter : Decoder<Character> =
         Decode.object (fun get ->
             { Character = (get.Required.Field "character" Decode.string).ToCharArray().[0]
 
               Definition = ((get.Optional.Field "definition" Decode.string
-                        |> Option.defaultValue "").Split(','))
-                        |> Seq.toList
+                           |> Option.defaultValue "").Split(','))
+                           |> Seq.toList
 
               Pinyin = get.Required.Field "pinyin" (Decode.list Decode.string)
-                    |> first
-                    |> Option.defaultValue ""
-                    |> StringToPinyin
+                       |> fst
+                       >>= StringToPinyin
 
               Decomposition = get.Optional.Field "decomposition" Decode.string
-                            |> Decompose
+                              >>= Decompose 
 
               Etymology = get.Optional.Field "etymology" EtyDecoder
-                        |> EtyStringToEty
+                          >>= EtyStringToEty
             })
-
 
     let DecodeCharacterList (characterJSON):  Result<Character list,string> = 
         Decode.Auto.fromString<List<Character>>(characterJSON)
@@ -166,9 +160,8 @@ module Characters =
     let TryCharFromPinyinGeneric (characters : Result<Character list,string>) (pinyin : Pinyin) : Result<Character,string> =
         match characters with
         | Ok li ->
-            let res = List.filter (fun c -> c.Pinyin = Some(pinyin)) li |> first 
+            let res = List.filter (fun c -> c.Pinyin = Some(pinyin)) li |> fst 
             match res with 
             | None -> Error ("No character found for pinyin " + pinyin.ToString())
             | Some c -> Ok(c) 
         | Error e -> Error e
-

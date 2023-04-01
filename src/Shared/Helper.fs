@@ -1,4 +1,4 @@
 module Shared.Helper
 
-let first li =
+let fst li =
   match li with [] -> None | h::_ -> Some h

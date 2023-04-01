@@ -30,7 +30,9 @@ Target.create "Bundle" (fun _ ->
 
 Target.create "Azure" (fun _ ->
     let web = webApp {
-        name "Topschi_safe"
+        name "safetemp"
+        operating_system OS.Windows
+        runtime_stack Runtime.DotNet60
         zip_deploy "deploy"
     }
     let deployment = arm {
@@ -39,7 +41,7 @@ Target.create "Azure" (fun _ ->
     }
 
     deployment
-    |> Deploy.execute "Topschi_safe" Deploy.NoParameters
+    |> Deploy.execute "safetemp" Deploy.NoParameters
     |> ignore
 )
 

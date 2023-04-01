@@ -1,7 +1,6 @@
 namespace Server
 
 open Shared
-open Helper
 open Pinyin
 open Characters
 
